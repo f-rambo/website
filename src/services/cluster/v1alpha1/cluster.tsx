@@ -123,4 +123,23 @@ export const ClusterServices = {
     });
     return handlerResponse(res);
   },
+  async getClusterRegion(clusterID: string) {
+    const res = await fetch(`${clusterApi}/regions?id=${clusterID}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
+  async startCluster(clusterID: string) {
+    const res = await fetch(`${clusterApi}/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: clusterID }),
+    });
+    return handlerResponse(res);
+  },
 };

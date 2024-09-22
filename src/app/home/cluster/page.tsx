@@ -40,7 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Cluster } from "@/types/types";
+import { Cluster, Node, NodeGroup, BostionHost } from "@/types/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { ClusterServices } from "@/services/cluster/v1alpha1/cluster";
@@ -68,29 +68,79 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import YamlEditor from "@focus-reactive/react-yaml";
+
+const clusterLocalType = "local";
+const clusterAwsEc2Type = "aws_ec2";
+const clusterAwsEksType = "aws_eks";
+const clusterAliCloudEcsType = "alicloud_ecs";
+const clusterAliCloudAksType = "alicloud_aks";
+const clusterKubernetesType = "kubernetes";
 
 const clusterTypes = [
   {
-    value: "aws",
-    label: "AWS Cloud",
+    value: clusterLocalType,
+    label: "Cluster on local",
   },
   {
-    value: "azure",
-    label: "Azure Cloud",
+    value: clusterAwsEc2Type,
+    label: "AWS EC2",
   },
   {
-    value: "google",
-    label: "Google Cloud",
+    value: clusterAwsEksType,
+    label: "AWS EKS",
   },
   {
-    value: "kubernetes",
+    value: clusterAliCloudEcsType,
+    label: "AliCloud ECS",
+  },
+  {
+    value: clusterAliCloudAksType,
+    label: "AliCloud AKS",
+  },
+  {
+    value: clusterKubernetesType,
     label: "Kubernetes",
   },
-  {
-    value: "customizable",
-    label: "Customizable",
-  },
 ];
+
+function isClusterCloudType(clusterType: string): boolean {
+  return (
+    clusterType === clusterAwsEc2Type ||
+    clusterType === clusterAwsEksType ||
+    clusterType === clusterAliCloudEcsType ||
+    clusterType === clusterAliCloudAksType
+  );
+}
+
+type ClusterArgs = {
+  id: string;
+  name: string;
+  type: string;
+  public_key: string;
+  region: string;
+  access_id: string;
+  access_key: string;
+  nodes: NodeArgs[];
+  edit: boolean;
+};
+
+type NodeArgs = {
+  id: string;
+  ip: string;
+  user: string;
+  role: string;
+};
 
 export default function ClusterListPage() {
   const router = useRouter();
@@ -102,9 +152,38 @@ export default function ClusterListPage() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [data, setData] = React.useState<Cluster[]>([]);
+  const [clusterItems, setClusterItems] = React.useState<Cluster[]>([]);
   const [openClusterType, setOpenClusterType] = React.useState(false);
-  const [clusterTypeValue, setClusterTypeValue] = React.useState("");
+  const [newClusterDialogOpen, setNewClusterDialogOpen] = React.useState(false);
+  const [newClusterDetailDialogOpen, setNewClusterDetailDialogOpen] =
+    React.useState(false);
+
+  const [clusterRegions, setClusterRegions] = React.useState<string[]>([]);
+
+  const emptyClusterArgs: ClusterArgs = {
+    id: "0", // backend is int64, so we use "0" to represent empty
+    name: "",
+    type: "",
+    public_key: "",
+    region: "",
+    access_id: "",
+    access_key: "",
+    nodes: [],
+    edit: false,
+  };
+  const [clusterArgs, setClusterArgs] =
+    React.useState<ClusterArgs>(emptyClusterArgs);
+
+  const clearClusterForm = () => {
+    setClusterArgs(emptyClusterArgs);
+  };
+
+  const updateClusterArgs = (changes: any) => {
+    setClusterArgs((prevState) => ({
+      ...prevState,
+      ...changes,
+    }));
+  };
 
   const refreshClusterList = React.useCallback(() => {
     ClusterServices.getList().then((data) => {
@@ -116,7 +195,7 @@ export default function ClusterListPage() {
         });
         return;
       }
-      setData(data.clusters as Cluster[]);
+      setClusterItems(data.clusters as Cluster[]);
     });
   }, [toast]);
 
@@ -166,21 +245,87 @@ export default function ClusterListPage() {
     });
   };
 
-  const uninstallCluster = (clusterID: string) => {
-    ClusterServices.uninstallCluster(clusterID).then((res) => {
+  const getClusterDetailAndSetClusterArgs = (clusterID: string) => {
+    ClusterServices.getDetail(clusterID).then((res) => {
       if (res instanceof Error) {
         toast({
-          title: "Uninstall cluster fail",
+          title: "Get cluster detail fail",
+          variant: "destructive",
+          description: res.message,
+        });
+        return;
+      }
+      const cluster = res as Cluster;
+      var nodeargs: NodeArgs[] = [];
+      cluster.nodes.forEach((node) => {
+        nodeargs.push({
+          id: node.id,
+          ip: node.internal_ip,
+          user: node.user,
+          role: node.role,
+        });
+      });
+      updateClusterArgs({
+        id: cluster.id,
+        name: cluster.name,
+        type: cluster.type,
+        public_key: cluster.public_key,
+        access_id: cluster.access_id,
+        access_key: cluster.access_key,
+        region: cluster.region,
+        nodes: nodeargs,
+      });
+    });
+  };
+
+  const createCluster = (step: number) => {
+    ClusterServices.saveCluster(clusterArgs).then((res) => {
+      if (res instanceof Error) {
+        toast({
+          title: "Save cluster fail",
+          variant: "destructive",
+          description: res.message,
+        });
+        return;
+      }
+      const clusterDetail = res as Cluster;
+      updateClusterArgs({ id: clusterDetail.id });
+      if (step === 1) {
+        return;
+      }
+      toast({
+        title: "Save cluster success",
+        description: "Cluster has been saved",
+      });
+      refreshClusterList();
+      ClusterServices.getClusterRegion(clusterDetail.id).then((res) => {
+        if (res instanceof Error) {
+          toast({
+            title: "Get cluster region fail",
+            variant: "destructive",
+            description: res.message,
+          });
+          return;
+        }
+        setClusterRegions(res.regions as string[]);
+      });
+    });
+  };
+
+  const startCluster = (clusterID: string) => {
+    ClusterServices.startCluster(clusterID).then((res) => {
+      if (res instanceof Error) {
+        toast({
+          title: "Start cluster fail",
           variant: "destructive",
           description: res.message,
         });
         return;
       }
       toast({
-        title: "Uninstall cluster success",
-        description: "Cluster has been uninstalled",
+        title: "Start cluster success",
+        description: "Cluster has been started",
       });
-      refreshClusterList();
     });
   };
 
@@ -246,9 +391,16 @@ export default function ClusterListPage() {
       ),
     },
     {
-      accessorKey: "server_version",
-      header: "Server Version",
-      cell: ({ row }) => <div>{row.getValue("server_version")}</div>,
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("type")}</div>
+      ),
+    },
+    {
+      accessorKey: "version",
+      header: "Kubernetes Version",
+      cell: ({ row }) => <div>{row.getValue("version")}</div>,
     },
     {
       accessorKey: "api_server_address",
@@ -256,23 +408,10 @@ export default function ClusterListPage() {
       cell: ({ row }) => <div>{row.getValue("api_server_address")}</div>,
     },
     {
-      accessorKey: "state",
-      header: "State",
+      accessorKey: "status",
+      header: "Status",
       cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("state")}</div>
-      ),
-    },
-    {
-      accessorKey: "is_current_cluster",
-      header: "Current Cluster",
-      cell: ({ row }) => (
-        <div className="capitalize">
-          {(row.getValue("is_current_cluster") as boolean) ? (
-            <CheckIcon className="ml-2  h-4 w-4" />
-          ) : (
-            <Cross2Icon className="ml-2  h-4 w-4" />
-          )}
-        </div>
+        <div className="capitalize">{row.getValue("status")}</div>
       ),
     },
     {
@@ -306,26 +445,36 @@ export default function ClusterListPage() {
                 Projects
               </DropdownMenuItem>
               <DropdownMenuItem
+                disabled={cluster.status === "running"}
+                onClick={() => {
+                  startCluster(cluster.id);
+                  router.push(`cluster/${cluster.id}/detail`);
+                }}
+              >
+                Start
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={cluster.status !== "running" || cluster.config === ""}
+              >
+                Stop
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => router.push(`cluster/${cluster.id}/detail`)}
               >
                 Detail
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={cluster.state !== "running" || cluster.config === ""}
-                onClick={() => uninstallCluster(cluster?.id)}
-              >
-                UnDeploy
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={cluster.state === "running"}
+                disabled={cluster.status === "running"}
                 onClick={() => {
-                  router.push(`/home/cluster/new?clusterid=${cluster.id}`);
+                  getClusterDetailAndSetClusterArgs(cluster.id);
+                  updateClusterArgs({ edit: true });
+                  setNewClusterDialogOpen(true);
                 }}
               >
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={cluster.state === "running"}
+                disabled={cluster.status === "running"}
                 onClick={() => deleteCluster(cluster?.id)}
               >
                 Delete
@@ -338,7 +487,7 @@ export default function ClusterListPage() {
   ];
 
   const table = useReactTable({
-    data,
+    data: clusterItems,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -394,14 +543,27 @@ export default function ClusterListPage() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Dialog>
+        <Dialog
+          open={newClusterDialogOpen}
+          onOpenChange={setNewClusterDialogOpen}
+        >
           <DialogTrigger asChild>
-            <Button variant="outline">New</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                updateClusterArgs({ edit: false });
+                setNewClusterDialogOpen(true);
+              }}
+            >
+              New
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>New Cluster</DialogTitle>
-              <DialogDescription>Select a cluster type</DialogDescription>
+              <DialogDescription>
+                Fill in the cluster information (1/2)
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -415,39 +577,36 @@ export default function ClusterListPage() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={openClusterType}
-                      className="w-[300px] justify-between"
+                      className="col-span-3 justify-between"
                     >
-                      {clusterTypeValue
+                      {clusterArgs.type
                         ? clusterTypes.find(
                             (clustertype) =>
-                              clustertype.value === clusterTypeValue
+                              clustertype.value === clusterArgs.type
                           )?.label
                         : "Select cluster type..."}
                       <DoubleArrowDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0">
+                  <PopoverContent className="col-span-3 p-0">
                     <Command>
                       <CommandInput placeholder="Search cluster type..." />
                       <CommandEmpty>No cluster type found.</CommandEmpty>
                       <CommandGroup>
                         {clusterTypes.map((clusterType) => (
                           <CommandItem
+                            disabled={clusterArgs.edit}
                             key={clusterType.value}
                             value={clusterType.value}
                             onSelect={(currentValue) => {
-                              setClusterTypeValue(
-                                currentValue === clusterTypeValue
-                                  ? ""
-                                  : currentValue
-                              );
+                              updateClusterArgs({ type: currentValue });
                               setOpenClusterType(false);
                             }}
                           >
                             <CheckIcon
                               className={cn(
                                 "mr-2 h-4 w-4",
-                                clusterTypeValue === clusterType.value
+                                clusterArgs.type === clusterType.value
                                   ? "opacity-100"
                                   : "opacity-0"
                               )}
@@ -460,12 +619,85 @@ export default function ClusterListPage() {
                   </PopoverContent>
                 </Popover>
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Cluster Name
+                </Label>
+                <Input
+                  id="name"
+                  disabled={clusterArgs.edit}
+                  value={clusterArgs.name}
+                  onChange={(e) => {
+                    const regex = /^[A-Za-z0-9]*$/;
+                    if (regex.test(e.target.value)) {
+                      updateClusterArgs({ name: e.target.value });
+                    }
+                  }}
+                  className={`col-span-3 ${
+                    !clusterArgs.name ? "border-red-500" : ""
+                  }`}
+                  placeholder="Enter cluster name"
+                  required
+                />
+                {!clusterArgs.name && (
+                  <p className="col-span-3 col-start-2 text-red-500 text-sm mt-1">
+                    Cluster name is required and must contain only letters and
+                    numbers.
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="public_key" className="text-right">
+                  Public Key
+                </Label>
+                <Textarea
+                  id="public_key"
+                  value={clusterArgs.public_key}
+                  className="col-span-3"
+                  onChange={(e) => {
+                    updateClusterArgs({ public_key: e.target.value });
+                  }}
+                  placeholder="Type your public key here."
+                />
+              </div>
+              {clusterArgs && isClusterCloudType(clusterArgs.type) && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="access_id" className="text-right">
+                      Access Id
+                    </Label>
+                    <Input
+                      id="access_id"
+                      value={clusterArgs.access_id}
+                      onChange={(e) => {
+                        updateClusterArgs({ access_id: e.target.value });
+                      }}
+                      className="col-span-3"
+                      required // 添加必填属性
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="access_key" className="text-right">
+                      Access Key
+                    </Label>
+                    <Input
+                      id="access_key"
+                      value={clusterArgs.access_key}
+                      onChange={(e) => {
+                        updateClusterArgs({ access_key: e.target.value });
+                      }}
+                      className="col-span-3"
+                      required // 添加必填属性
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <DialogFooter>
               <DialogClose asChild>
                 <Button
                   onClick={() => {
-                    if (clusterTypeValue === "") {
+                    if (clusterArgs.type === "") {
                       toast({
                         title: "Please select a cluster type",
                         variant: "destructive",
@@ -474,10 +706,50 @@ export default function ClusterListPage() {
                       });
                       return;
                     }
-                    if (clusterTypeValue === "customizable") {
-                      router.push(`cluster/new`);
+                    if (clusterArgs.name === "") {
+                      toast({
+                        title: "Please enter a cluster name",
+                        variant: "destructive",
+                        description:
+                          "Please enter a cluster name to create a new cluster",
+                      });
+                      return;
                     }
-                    setClusterTypeValue("");
+                    if (clusterArgs.public_key === "") {
+                      toast({
+                        title: "Please enter a public key",
+                        variant: "destructive",
+                        description:
+                          "Please enter a public key to create a new cluster",
+                      });
+                      return;
+                    }
+                    if (
+                      clusterArgs.access_id === "" &&
+                      clusterArgs.type !== "local"
+                    ) {
+                      toast({
+                        title: "Please enter a access id",
+                        variant: "destructive",
+                        description:
+                          "Please enter a access id to create a new cluster",
+                      });
+                      return;
+                    }
+                    if (
+                      clusterArgs.access_key === "" &&
+                      clusterArgs.type !== "local"
+                    ) {
+                      toast({
+                        title: "Please enter a access key",
+                        variant: "destructive",
+                        description:
+                          "Please enter a access key to create a new cluster",
+                      });
+                      return;
+                    }
+                    createCluster(1);
+                    setNewClusterDetailDialogOpen(true);
                   }}
                 >
                   Next
@@ -486,6 +758,75 @@ export default function ClusterListPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {/* ------------------------------ */}
+        <Dialog
+          open={newClusterDetailDialogOpen}
+          onOpenChange={setNewClusterDetailDialogOpen}
+        >
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>New Cluster</DialogTitle>
+              {clusterArgs.type === "local" && (
+                <DialogDescription>Node information (2/2)</DialogDescription>
+              )}
+              {clusterArgs.type !== "local" && (
+                <DialogDescription>Cluster Region (2/2)</DialogDescription>
+              )}
+            </DialogHeader>
+            {clusterArgs.type !== "local" && clusterArgs.type !== "" && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="region" className="text-right">
+                  Region
+                </Label>
+                <Select
+                  onValueChange={(value) =>
+                    updateClusterArgs({ region: value })
+                  }
+                >
+                  <SelectTrigger className="col-span-3 p-3">
+                    <SelectValue placeholder="Select a region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Regions</SelectLabel>
+                      {clusterRegions.map((region) => (
+                        <SelectItem key={region} value={region}>
+                          {region}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {clusterArgs.type === "local" && (
+              <div className="grid grid-cols-1 items-center gap-4">
+                <div className="h-96 w-full">
+                  <YamlEditor
+                    json={clusterArgs.nodes}
+                    onChange={(e) => {
+                      updateClusterArgs({ nodes: e.json as NodeArgs[] });
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button
+                  type="submit"
+                  onClick={() => {
+                    createCluster(2);
+                    clearClusterForm();
+                  }}
+                >
+                  Save
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {/* ------------------------------ */}
       </div>
       <div className="rounded-md border">
         <Table>

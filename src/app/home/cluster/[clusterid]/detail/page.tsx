@@ -99,8 +99,6 @@ export default function DetailsPage({
         name: node?.name,
         external_ip: node?.external_ip,
         user: node?.user,
-        password: node?.password,
-        sudo_password: node?.sudo_password,
         role: node?.role,
       });
     });
@@ -124,7 +122,7 @@ export default function DetailsPage({
         if (element) {
           element.scrollTop = element.scrollHeight;
         }
-        setLogs(data.logs);
+        // setLogs(data.log);
       });
     },
     [toast]
@@ -181,26 +179,6 @@ export default function DetailsPage({
           title: "Error",
           description: "Error while adding node",
           duration: 5000,
-        });
-        return;
-      }
-      getClusterDetails(clusterid);
-      toast({
-        title: "Success",
-        description: "Node added successfully",
-        duration: 5000,
-      });
-    });
-  };
-
-  const enableNode = (clusterid: string, nodeId: string) => {
-    ClusterServices.addNode(clusterid, nodeId).then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Error",
-          description: "Error while adding node",
-          duration: 5000,
-          variant: "destructive",
         });
         return;
       }
@@ -310,13 +288,8 @@ export default function DetailsPage({
     },
     {
       accessorKey: "os_image",
-      header: "OS Image",
+      header: "OS",
       cell: ({ row }) => <div>{row.getValue("os_image")}</div>,
-    },
-    {
-      accessorKey: "kernel",
-      header: "Kernel",
-      cell: ({ row }) => <div>{row.getValue("kernel")}</div>,
     },
     {
       accessorKey: "container",
@@ -324,19 +297,9 @@ export default function DetailsPage({
       cell: ({ row }) => <div>{row.getValue("container")}</div>,
     },
     {
-      accessorKey: "kube_proxy",
-      header: "Kube Proxy",
-      cell: ({ row }) => <div>{row.getValue("kube_proxy")}</div>,
-    },
-    {
       accessorKey: "internal_ip",
-      header: "Internal IP",
+      header: "IP",
       cell: ({ row }) => <div>{row.getValue("internal_ip")}</div>,
-    },
-    {
-      accessorKey: "external_ip",
-      header: "External IP",
-      cell: ({ row }) => <div>{row.getValue("external_ip")}</div>,
     },
     {
       accessorKey: "role",
@@ -344,10 +307,10 @@ export default function DetailsPage({
       cell: ({ row }) => <div>{row.getValue("role")}</div>,
     },
     {
-      accessorKey: "state",
-      header: "State",
+      accessorKey: "status",
+      header: "Status",
       cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("state")}</div>
+        <div className="capitalize">{row.getValue("status")}</div>
       ),
     },
     {
@@ -374,19 +337,13 @@ export default function DetailsPage({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                disabled={node.state !== "init"}
-                onClick={() => enableNode(clusterid, node.id)}
-              >
-                Enable node
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={node.state !== "running"}
+                disabled={node.status !== "running"}
                 onClick={() => removeNode(clusterid, node.id)}
               >
                 Remove node
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={node.state === "running"}
+                disabled={node.status === "running"}
                 onClick={() => deleteNode(clusterid, node.id)}
               >
                 Delete
@@ -585,35 +542,6 @@ export default function DetailsPage({
           </div>
           <div className="space-y-4">
             <div className="bg-gray-100 p-4 rounded">
-              <h3 className="text-lg font-semibold">Actions</h3>
-              <div className="flex items-center mt-2">
-                <ActivityLogIcon className="h-6 w-6 mr-3" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="w-full" variant="outline">
-                      Menu
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      disabled={cluster?.state === "running"}
-                      onClick={deploy}
-                    >
-                      Reinstall
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={cluster?.state !== "running"}
-                      onClick={unDeploy}
-                    >
-                      Uninstall
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-            <div className="bg-gray-100 p-4 rounded">
               <h3 className="text-lg font-semibold">Cluster information</h3>
               <div className="flex items-center mt-4">
                 <ScrollArea className="w-full rounded-md border">
@@ -623,7 +551,7 @@ export default function DetailsPage({
                     </div>
                     <Separator className="my-2" />
                     <div className="text-gray-600">
-                      Server version : {cluster?.server_version}
+                      Server version : {cluster?.version}
                     </div>
                     <Separator className="my-2" />
                     <div className="text-gray-600">
@@ -631,7 +559,7 @@ export default function DetailsPage({
                     </div>
                     <Separator className="my-2" />
                     <div className="text-gray-600">
-                      Cluster state : {cluster?.state}
+                      Cluster state : {cluster?.status}
                     </div>
                     <Separator className="my-2" />
                     <div className="text-gray-600">

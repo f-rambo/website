@@ -67,7 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.provider = account.provider;
         const data  = await signInFunction(
           user.email as string, 
-          user.id as string, 
+          user.id as string, // as password
           account.access_token as string, 
           account.provider as string, 
           user.name as string,
@@ -98,7 +98,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-  debug: process.env.NODE_ENV !== "production" ? true : false,
+  // debug: process.env.NODE_ENV !== "production" ? true : false,
 })
 
 declare module "next-auth" {
