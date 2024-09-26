@@ -127,6 +127,7 @@ type ClusterArgs = {
   id: string;
   name: string;
   type: string;
+  private_key: string;
   public_key: string;
   region: string;
   access_id: string;
@@ -164,6 +165,7 @@ export default function ClusterListPage() {
     id: "0", // backend is int64, so we use "0" to represent empty
     name: "",
     type: "",
+    private_key: "",
     public_key: "",
     region: "",
     access_id: "",
@@ -198,34 +200,6 @@ export default function ClusterListPage() {
       setClusterItems(data.clusters as Cluster[]);
     });
   }, [toast]);
-
-  const GetCurrentCluster = () => {
-    ClusterServices.GetCurrentCluster().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get current cluster fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      ClusterServices.saveCluster(res).then((res) => {
-        if (res instanceof Error) {
-          toast({
-            title: "Save current cluster fail",
-            variant: "destructive",
-            description: res.message,
-          });
-          return;
-        }
-        refreshClusterList();
-      });
-      toast({
-        title: "Get current cluster success",
-        description: "Current cluster has been fetched",
-      });
-    });
-  };
 
   const deleteCluster = (clusterID: string) => {
     ClusterServices.deleteCluster(clusterID).then((res) => {
@@ -286,18 +260,20 @@ export default function ClusterListPage() {
           variant: "destructive",
           description: res.message,
         });
+        setNewClusterDetailDialogOpen(false);
         return;
       }
+      refreshClusterList();
       const clusterDetail = res as Cluster;
       updateClusterArgs({ id: clusterDetail.id });
-      if (step === 1) {
+      if (step === 2) {
+        toast({
+          title: "Save cluster success",
+          description: "Cluster has been saved",
+        });
+        clearClusterForm();
         return;
       }
-      toast({
-        title: "Save cluster success",
-        description: "Cluster has been saved",
-      });
-      refreshClusterList();
       ClusterServices.getClusterRegion(clusterDetail.id).then((res) => {
         if (res instanceof Error) {
           toast({
@@ -323,8 +299,8 @@ export default function ClusterListPage() {
         return;
       }
       toast({
-        title: "Start cluster success",
-        description: "Cluster has been started",
+        title: "Starting cluster...",
+        description: "Please wait for a moment",
       });
     });
   };
@@ -408,10 +384,10 @@ export default function ClusterListPage() {
       cell: ({ row }) => <div>{row.getValue("api_server_address")}</div>,
     },
     {
-      accessorKey: "status",
+      accessorKey: "status_string",
       header: "Status",
       cell: ({ row }) => (
-        <div className="capitalize">{row.getValue("status")}</div>
+        <div className="capitalize">{row.getValue("status_string")}</div>
       ),
     },
     {
@@ -647,21 +623,35 @@ export default function ClusterListPage() {
                 )}
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="public_key" className="text-right">
-                  Public Key
+                <Label htmlFor="private_key" className="text-right">
+                  Private Key
                 </Label>
                 <Textarea
-                  id="public_key"
-                  value={clusterArgs.public_key}
+                  id="private_key"
+                  value={clusterArgs.private_key}
                   className="col-span-3"
                   onChange={(e) => {
-                    updateClusterArgs({ public_key: e.target.value });
+                    updateClusterArgs({ private_key: e.target.value });
                   }}
-                  placeholder="Type your public key here."
+                  placeholder="Type your private key here."
                 />
               </div>
               {clusterArgs && isClusterCloudType(clusterArgs.type) && (
                 <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="public_key" className="text-right">
+                      Public Key
+                    </Label>
+                    <Textarea
+                      id="public_key"
+                      value={clusterArgs.public_key}
+                      className="col-span-3"
+                      onChange={(e) => {
+                        updateClusterArgs({ public_key: e.target.value });
+                      }}
+                      placeholder="Type your public key here."
+                    />
+                  </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="access_id" className="text-right">
                       Access Id
@@ -673,7 +663,7 @@ export default function ClusterListPage() {
                         updateClusterArgs({ access_id: e.target.value });
                       }}
                       className="col-span-3"
-                      required // 添加必填属性
+                      required
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -687,7 +677,7 @@ export default function ClusterListPage() {
                         updateClusterArgs({ access_key: e.target.value });
                       }}
                       className="col-span-3"
-                      required // 添加必填属性
+                      required
                     />
                   </div>
                 </>
@@ -817,7 +807,6 @@ export default function ClusterListPage() {
                   type="submit"
                   onClick={() => {
                     createCluster(2);
-                    clearClusterForm();
                   }}
                 >
                   Save
@@ -871,15 +860,7 @@ export default function ClusterListPage() {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  <div>
-                    <Button
-                      variant="outline"
-                      onClick={() => GetCurrentCluster()}
-                    >
-                      Get cluster information
-                    </Button>
-                    <p className="mt-6">No results...</p>
-                  </div>
+                  <p className="mt-6">No results...</p>
                 </TableCell>
               </TableRow>
             )}

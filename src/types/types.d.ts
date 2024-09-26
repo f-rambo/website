@@ -110,6 +110,7 @@ type Cluster = {
       addons: string;
       addons_config: string;
       status: string;
+      status_string: string;
       type: string;
       kube_config: string;
       key_pair: string;
@@ -182,6 +183,7 @@ type Node = {
       internet_max_bandwidth_out: number;
       cluster_id: number;
       node_group_id: string;
+      status_string: string;
 };
 
 type BostionHost = {
