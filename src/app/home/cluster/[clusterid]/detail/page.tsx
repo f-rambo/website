@@ -38,8 +38,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 const POLLING_INTERVAL = 3000;
 const TAIL_LINES = 30;
@@ -211,6 +215,56 @@ export default function DetailsPage({
         <div className="capitalize ml-4">{row.getValue("name")}</div>
       ),
     },
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ row }) => <div>{row.getValue("type")}</div>,
+    },
+    {
+      accessorKey: "arch",
+      header: "Architecture",
+      cell: ({ row }) => <div>{row.getValue("arch")}</div>,
+    },
+    {
+      accessorKey: "cpu",
+      header: "CPU",
+      cell: ({ row }) => <div>{row.getValue("cpu")}</div>,
+    },
+    {
+      accessorKey: "memory",
+      header: "Memory",
+      cell: ({ row }) => <div>{row.getValue("memory")}</div>,
+    },
+    {
+      accessorKey: "gpu",
+      header: "GPU",
+      cell: ({ row }) => <div>{row.getValue("gpu")}</div>,
+    },
+    {
+      accessorKey: "min_size",
+      header: "Min Size",
+      cell: ({ row }) => <div>{row.getValue("min_size")}</div>,
+    },
+    {
+      accessorKey: "max_size",
+      header: "Max Size",
+      cell: ({ row }) => <div>{row.getValue("max_size")}</div>,
+    },
+    {
+      accessorKey: "target_size",
+      header: "Target Size",
+      cell: ({ row }) => <div>{row.getValue("target_size")}</div>,
+    },
+    {
+      accessorKey: "system_disk",
+      header: "System Disk",
+      cell: ({ row }) => <div>{row.getValue("system_disk")}</div>,
+    },
+    {
+      accessorKey: "data_disk",
+      header: "Data Disk",
+      cell: ({ row }) => <div>{row.getValue("data_disk")}</div>,
+    },
   ];
 
   const nodeGroupTable = useReactTable({
@@ -286,10 +340,51 @@ export default function DetailsPage({
       cell: ({ row }) => <div>{row.getValue("role")}</div>,
     },
     {
+      accessorKey: "node_price",
+      header: "Node Price",
+      cell: ({ row }) => <div>{row.getValue("node_price")}</div>,
+    },
+    {
+      accessorKey: "pod_price",
+      header: "Pod Price",
+      cell: ({ row }) => <div>{row.getValue("pod_price")}</div>,
+    },
+    {
+      accessorKey: "gpu_spec",
+      header: "GPU Spec",
+      cell: ({ row }) => <div>{row.getValue("gpu_spec")}</div>,
+    },
+    {
+      accessorKey: "system_disk",
+      header: "System Disk",
+      cell: ({ row }) => <div>{row.getValue("system_disk")}</div>,
+    },
+    {
+      accessorKey: "data_disk",
+      header: "Data Disk",
+      cell: ({ row }) => <div>{row.getValue("data_disk")}</div>,
+    },
+    {
       accessorKey: "status_string",
       header: "Status",
       cell: ({ row }) => (
         <div className="capitalize">{row.getValue("status_string")}</div>
+      ),
+    },
+    {
+      accessorKey: "error_info",
+      header: "Error Info",
+      cell: ({ row }) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="cursor-pointer">{"...."}</div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="p-2">{row.getValue("error_info")}</div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       ),
     },
   ];
@@ -313,10 +408,10 @@ export default function DetailsPage({
 
   return (
     <div className="flex h-screen">
-      <div className="flex-grow grid grid-cols-4 gap-4 p-4">
-        <div className="col-span-3 space-y-4 overflow-y-auto">
-          <div className="w-full">
-            <div className="flex items-center py-4">
+      <div className="flex-grow flex p-4 space-x-4">
+        <div className="w-2/3 space-y-4 overflow-y-auto">
+          <div className="w-full overflow-x-auto">
+            <div className="flex items-center py-4 ">
               <Input
                 placeholder="Filter node groups..."
                 value={
@@ -429,7 +524,7 @@ export default function DetailsPage({
               </div>
             </div>
           </div>
-          <div className="w-full">
+          <div className="w-full overflow-x-auto">
             <div className="flex items-center py-4">
               <Input
                 placeholder="Filter nodes..."
@@ -543,7 +638,7 @@ export default function DetailsPage({
             </div>
           </div>
         </div>
-        <div className="col-span-1 flex flex-col space-y-4 h-full">
+        <div className="w-1/3 flex flex-col space-y-4 overflow-y-auto">
           <div className="bg-gray-900 p-4 rounded-lg shadow-lg flex-grow flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold text-gray-300">Logs</h3>
