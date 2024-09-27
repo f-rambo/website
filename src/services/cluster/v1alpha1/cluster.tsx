@@ -1,4 +1,5 @@
 import { handlerResponse } from "@/services/common";
+import { ClusterLogsRequest } from "@/types/types";
 
 const clusterApi = `${process.env.HOST ?? ""}${
   process.env.PORT ?? ""
@@ -58,6 +59,16 @@ export const ClusterServices = {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ id: clusterID }),
+    });
+    return handlerResponse(res);
+  },
+  async pollingLogs(data: ClusterLogsRequest) {
+    const res = await fetch(`${clusterApi}/logs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
     });
     return handlerResponse(res);
   },

@@ -1,10 +1,15 @@
 "use client";
-import React from "react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState, useCallback } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  useReducer,
+} from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ClusterServices } from "@/services/cluster/v1alpha1/cluster";
-import { Cluster, Node, NodeGroup } from "@/types/types";
+import { Cluster, Node, NodeGroup, ClusterLogsRequest } from "@/types/types";
 import { CaretSortIcon, ChevronDownIcon } from "@radix-ui/react-icons";
 import {
   ColumnDef,
@@ -18,7 +23,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -37,21 +41,62 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
+const POLLING_INTERVAL = 3000;
+const TAIL_LINES = 30;
+
+type State = {
+  cluster: Cluster | null;
+  nodes: Node[];
+  nodeGroups: NodeGroup[];
+  logs: string;
+  currentLine: number;
+};
+
+type Action =
+  | { type: "SET_CLUSTER"; payload: Cluster }
+  | { type: "SET_NODES"; payload: Node[] }
+  | { type: "SET_NODE_GROUPS"; payload: NodeGroup[] }
+  | { type: "APPEND_LOGS"; payload: string; currentLine: number };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "SET_CLUSTER":
+      return { ...state, cluster: action.payload };
+    case "SET_NODES":
+      return { ...state, nodes: action.payload };
+    case "SET_NODE_GROUPS":
+      return { ...state, nodeGroups: action.payload };
+    case "APPEND_LOGS":
+      return {
+        ...state,
+        logs: state.logs + action.payload,
+        currentLine: action.currentLine,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function DetailsPage({
   params,
 }: {
   params: { clusterid: string };
 }) {
   const { toast } = useToast();
-  const clusterid = params.clusterid;
-  const [cluster, setCluster] = useState<Cluster>();
-  const [nodes, setNodes] = useState<Node[]>([]);
+  const [state, dispatch] = useReducer(reducer, {
+    cluster: null,
+    nodes: [],
+    nodeGroups: [],
+    logs: "",
+    currentLine: 0,
+  });
+
   const [nodeSorting, setNodeSorting] = React.useState<SortingState>([]);
   const [nodeColumnFilters, setNodeColumnFilters] =
     React.useState<ColumnFiltersState>([]);
   const [nodeColumnVisibility, setNodeColumnVisibility] =
     React.useState<VisibilityState>({});
-  const [nodeGroups, setNodeGroups] = useState<NodeGroup[]>([]);
+
   const [nodeGroupSorting, setNodeGroupSorting] = React.useState<SortingState>(
     []
   );
@@ -60,33 +105,76 @@ export default function DetailsPage({
   const [nodeGroupColumnVisibility, setNodeGroupColumnVisibility] =
     React.useState<VisibilityState>({});
 
-  const getClusterDetails = useCallback(
-    (clusterID: string) => {
-      ClusterServices.getDetail(clusterID).then((res) => {
-        if (res instanceof Error) {
-          toast({
-            title: "Error",
-            description: "Error while fetching cluster data",
-            duration: 5000,
-          });
-          return;
-        }
-        const data = res as Cluster;
-        setCluster(data);
-        setNodes(data.nodes);
-        setNodeGroups(data.node_groups);
-        var element = document.getElementById("log");
-        if (element) {
-          element.scrollTop = element.scrollHeight;
-        }
+  const logRef = useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+
+  const scrollToBottom = useCallback(() => {
+    if (logRef.current && autoScroll) {
+      logRef.current.scrollTo({
+        top: logRef.current.scrollHeight,
+        behavior: "smooth",
       });
+    }
+  }, [autoScroll]);
+
+  const getClusterDetails = useCallback(
+    async (clusterID: string) => {
+      try {
+        const data = await ClusterServices.getDetail(clusterID);
+        dispatch({ type: "SET_CLUSTER", payload: data });
+        dispatch({ type: "SET_NODES", payload: data.nodes });
+        dispatch({ type: "SET_NODE_GROUPS", payload: data.node_groups });
+        scrollToBottom();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Error while fetching cluster data",
+          duration: 5000,
+        });
+      }
     },
-    [toast]
+    [toast, scrollToBottom]
   );
 
   useEffect(() => {
-    getClusterDetails(clusterid);
-  }, [clusterid, toast, getClusterDetails]);
+    getClusterDetails(params.clusterid);
+    const pollLogs = async () => {
+      try {
+        const logsRequest: ClusterLogsRequest = {
+          cluster_id: params.clusterid,
+          tail_lines: TAIL_LINES,
+          cluster_name: "",
+          current_line: state.currentLine,
+        };
+
+        const response = await ClusterServices.pollingLogs(logsRequest);
+        dispatch({
+          type: "APPEND_LOGS",
+          payload: response.logs,
+          currentLine: response.last_line,
+        });
+        // Call scrollToBottom after updating logs
+        scrollToBottom();
+      } catch (error) {
+        console.error("Error polling logs:", error);
+      }
+    };
+
+    // Initial poll
+    pollLogs();
+
+    // Set up interval for polling
+    const intervalId = setInterval(pollLogs, POLLING_INTERVAL);
+
+    // Clean up function
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [params.clusterid, scrollToBottom, state.currentLine, getClusterDetails]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [state.logs, scrollToBottom]);
 
   const nodeGroupColumns: ColumnDef<NodeGroup>[] = [
     {
@@ -126,7 +214,7 @@ export default function DetailsPage({
   ];
 
   const nodeGroupTable = useReactTable({
-    data: nodeGroups,
+    data: state.nodeGroups,
     columns: nodeGroupColumns,
     onSortingChange: setNodeGroupSorting,
     onColumnFiltersChange: setNodeGroupColumnFilters,
@@ -207,7 +295,7 @@ export default function DetailsPage({
   ];
 
   const nodeTable = useReactTable({
-    data: nodes,
+    data: state.nodes,
     columns: nodeColumns,
     onSortingChange: setNodeSorting,
     onColumnFiltersChange: setNodeColumnFilters,
@@ -456,49 +544,24 @@ export default function DetailsPage({
           </div>
         </div>
         <div className="col-span-1 flex flex-col space-y-4 h-full">
-          <div className="bg-gray-100 p-4 rounded flex-shrink-0">
-            <h3 className="text-lg font-semibold">Cluster information</h3>
-            <div className="flex items-center mt-4">
-              <ScrollArea className="w-full rounded-md border">
-                <div className="p-4">
-                  <div className="text-gray-600">
-                    Cluster name : {cluster?.name}
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="text-gray-600">
-                    Server version : {cluster?.version}
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="text-gray-600">
-                    Api server address : {cluster?.api_server_address}
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="text-gray-600">
-                    Cluster status : {cluster?.status_string}
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="text-gray-600">
-                    Node count : {cluster?.nodes.length}
-                  </div>
-                </div>
-              </ScrollArea>
-            </div>
-          </div>
           <div className="bg-gray-900 p-4 rounded-lg shadow-lg flex-grow flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold text-gray-300">Logs</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAutoScroll(!autoScroll)}
+                className="text-gray-300 border-gray-600"
+              >
+                {autoScroll ? "Disable Auto-scroll" : "Enable Auto-scroll"}
+              </Button>
             </div>
             <div
-              id="log"
-              className="font-mono text-sm bg-black text-green-400 p-3 rounded overflow-y-auto flex-grow"
+              ref={logRef}
+              className="flex-grow font-mono text-sm bg-black text-green-400 p-3 rounded h-[calc(100vh-300px)] overflow-auto scrollbar-thin scrollbar-hide hover:scrollbar-default"
             >
               <pre className="whitespace-pre-wrap">
-                {`
-$ kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-nginx-6799fc88d8-rx9kw   1/1     Running   0          2d12h
-redis-master-1           1/1     Running   0          5d20h
-                `}
+                {state.logs + "\n".repeat(10)}
               </pre>
             </div>
           </div>

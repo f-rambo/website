@@ -205,6 +205,17 @@ type BostionHost = {
       memory: number;
 };
 
+type ClusterLogsRequest = {
+      cluster_id: string;
+      tail_lines: number;
+      cluster_name: string;
+      current_line: number;
+}
+
+type ClusterLogsResponse = {
+      logs: string;
+      last_line: number;
+}
 
 
 type Project = {
