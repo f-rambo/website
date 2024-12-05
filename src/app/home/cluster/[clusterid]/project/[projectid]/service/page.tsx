@@ -364,7 +364,7 @@ export default function ServicePage({
               <Input
                 id="coderepo"
                 type="url"
-                placeholder="https://github.com/f-rambo/ocean"
+                placeholder="https://github.com/f-rambo/website"
                 className="col-span-3 w-[360px]"
                 onChange={(e) =>
                   updateSelectedService({

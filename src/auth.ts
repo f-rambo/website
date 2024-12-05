@@ -4,7 +4,6 @@ import { User } from "@auth/core/types"
 import Credentials from "next-auth/providers/credentials"
 import { User as adminUser } from "@/types/types"
 import md5 from "md5";
-import { cookies } from 'next/headers'
 
 const userApi = `${process.env.NEXT_PUBLIC_API ?? ""}${
   process.env.NEXT_PUBLIC_API_VERSION ?? ""
@@ -14,21 +13,11 @@ class InvalidLoginError extends CredentialsSignin {
   code = "Invalid identifier or password"
 }
 
-const setCookie = (key: string, val: string, expires: number) => {
-  const cookieStore = cookies()
-  cookieStore.set(key, val, {
-    path: "/",
-    expires: new Date(expires * 1000),
-  })
-}
-
-const signInFunction = async (email: string, password: string, access_token: string, sign_type: string, username: string) => {
+const signInFunction = async (email: string, password: string, access_token: string) => {
   let signinRequest = {
     email: email,
     password: password,
     access_token: access_token,
-    sign_type: sign_type,
-    username: username,
   };
   const res = await fetch(userApi + "signin", {
     method: "POST",
@@ -69,13 +58,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.email as string, 
           user.id as string, // as password
           account.access_token as string, 
-          account.provider as string, 
-          user.name as string,
         )
         if (data) {
             token.id = data.id;
             token.accessToken = data.access_token;
-            token.state = data.state;
+            token.status = data.status_string;
         }else {
           throw new InvalidLoginError()
         }
@@ -92,13 +79,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token?.provider) {
         session.provider = token.provider as string;
       }
-      if (token?.state) {
-        session.state = token.state as string;
+      if (token?.status) {
+        session.status = token.status as string;
       }
       return session;
     },
   },
-  // debug: process.env.NODE_ENV !== "production" ? true : false,
+  debug: process.env.NODE_ENV !== "production" ? true : false,
 })
 
 declare module "next-auth" {
@@ -109,6 +96,6 @@ declare module "next-auth" {
     user?: User
     expires?: string // 2024-06-12T13:47:56.390Z
     provider?: string
-    state?: string
+    status?: string
   }
 }

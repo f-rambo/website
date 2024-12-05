@@ -6,7 +6,7 @@ import Layout from "@/layout/root-layout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ocean",
+  title: "Cloud copilot",
   description: "serverless web apps made easy",
   icons: {
     icon: "/favicon.ico",

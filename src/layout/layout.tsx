@@ -17,7 +17,7 @@ const Layout = async ({ children }: ChildContainerProps) => {
       </div>
     );
   }
-  if (session && session.user && session.state !== "enable") {
+  if (session && session.user && session.status !== "USER_ENABLE") {
     content = (
       <div className="flex justify-center items-center h-full">
         <h3>Please enable your account</h3>
@@ -32,7 +32,7 @@ const Layout = async ({ children }: ChildContainerProps) => {
             <div className="flex h-[60px] items-center px-6">
               <a className="flex items-center gap-2 font-semibold" href="/home">
                 <IoIosCloudDone className="h-6 w-6" />
-                <span className="">Ocean</span>
+                <span className="">Cloud copilot</span>
               </a>
             </div>
             <div className="flex-1">

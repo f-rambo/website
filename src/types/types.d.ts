@@ -9,9 +9,9 @@ type User = {
       username: string;
       email: string;
       access_token: string;
-      state: string;
+      status_string: string;
       updated_at: string;
-      sign_type: string;
+      sign_type_string: string;
       password: string;
 }
 
@@ -98,111 +98,98 @@ type Repositorie = {
       description: string;
 }
 
+type ClusterArgs = {
+      id: string;
+      name: string;
+      type: number;
+      private_key: string;
+      public_key: string;
+      region: string;
+      access_id: string;
+      access_key: string;
+      nodes: NodeArgs[];
+      edit: boolean;
+};
+    
+type NodeArgs = {
+      id: string;
+      ip: string;
+      user: string;
+      role: number;
+};
+
+type ClusterType = {
+      id: number;
+      name: string;
+      is_cloud: boolean;
+}
+
+type ClusterStatus = {
+      id: number;
+      name: string;
+}
+
+// ClusterLevel
+type ClusterLevel = {
+      id: number;
+      name: string;
+}
+
+// NodeStatus
+type NodeStatus = {
+      id: number;
+      name: string;
+}
+
+// NodeGroupType
+type NodeGroupType = {
+      id: number;
+      name: string;
+}
+
+// NodeRole
+type NodeRole = {
+      id: number;
+      name: string;
+}
+
+// ResourceType
+type ResourceType = {
+      id: number;
+      name: string;
+}
+
 type Cluster = {
       id: string;
       name: string;
-      cloud_id: string;
-      connections: string;
-      certificate_authority: string;
       version: string;
-      api_server_address: string;
-      config: string;
-      addons: string;
-      addons_config: string;
-      status: string;
-      status_string: string;
-      type: string;
-      kube_config: string;
-      key_pair: string;
+      status: number;
+      type: number;
       public_key: string;
       private_key: string;
       region: string;
-      vpc_id: string;
-      vpc_cidr: string;
-      eip_id: string;
-      nat_gateway_id: string;
-      resource_group_id: string;
-      security_group_ids: string;
-      external_ip: string;
       access_id: string;
       access_key: string;
-      load_balancer_id: string;
+      create_at: string;
+      update_at: string;
+      api_server_address: string;
       nodes: Node[];
       node_groups: NodeGroup[];
       bostion_host: BostionHost;
 };
 
 type NodeGroup = {
-      id: string;
-      name: string;
-      cloud_nodegroup_id: string;
-      type: string;
-      instance_type: string;
-      image: string;
-      os: string;
-      arch: string;
-      cpu: number;
-      memory: number;
-      gpu: number;
-      node_init_script: string;
-      min_size: number;
-      max_size: number;
-      target_size: number;
-      system_disk: number;
-      data_disk: number;
-      cluster_id: number;
 };
 
 type Node = {
       id: string;
-      instance_id: string;
-      name: string;
-      labels: string;
-      annotations: string;
-      os_image: string;
-      kernel: string;
-      container: string;
-      kubelet: string;
-      kube_proxy: string;
-      ssh_port: number;
       internal_ip: string;
-      external_ip: string;
       user: string;
-      role: string;
-      status: string;
-      error_info: string;
-      zone: string;
-      subnet_id: string;
-      subnet_cidr: string;
-      public_key: string;
-      gpu_spec: string;
-      system_disk: number;
-      data_disk: number;
-      node_price: number;
-      pod_price: number;
-      internet_max_bandwidth_out: number;
-      cluster_id: number;
-      node_group_id: string;
-      status_string: string;
+      role: number;
 };
 
 type BostionHost = {
-      id: string;
-      instance_type: string;
-      instance_id: string;
-      user: string;
-      image_id: string;
-      image: string;
-      os: string;
-      arch: string;
-      hostname: string;
-      external_ip: string;
-      internal_ip: string;
-      ssh_port: number;
-      private_ip: string;
-      cluster_id: number;
-      cpu: number;
-      memory: number;
+
 };
 
 type ClusterLogsRequest = {

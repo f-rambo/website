@@ -72,4 +72,67 @@ export const ClusterServices = {
     });
     return handlerResponse(res);
   },
+  async getClusterTypes() {
+    const res = await fetch(`${clusterApi}/types`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
+  async getClusterStatuses() {
+    const res = await fetch(`${clusterApi}/statuses`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
+  async getClusterLevels() {
+    const res = await fetch(`${clusterApi}/levels`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
+  async getNodeRoles() {
+    const res = await fetch(`${clusterApi}/node/roles`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
+  async getNodeStatuses() {
+    const res = await fetch(`${clusterApi}/node/statuses`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
+  async getNodeGroupTypes() {
+    const res = await fetch(`${clusterApi}/node/group/types`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
+  async getResourceTypes() {
+    const res = await fetch(`${clusterApi}/resource/types`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return handlerResponse(res);
+  },
 };
