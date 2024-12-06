@@ -39,18 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Cluster,
-  ClusterType,
-  ClusterArgs,
-  NodeArgs,
-  ClusterStatus,
-  ClusterLevel,
-  NodeStatus,
-  NodeGroupType,
-  NodeRole,
-  ResourceType,
-} from "@/types/types";
+import { Cluster, ClusterArgs, NodeArgs } from "@/types/types";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { ClusterServices } from "@/services/cluster/v1alpha1/cluster";
@@ -89,6 +78,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import YamlEditor from "@focus-reactive/react-yaml";
+import {
+  initializeData,
+  getClusterAllTypes,
+  findClusterTypeById,
+  findClusterStatusById,
+  findClusterTypeByName,
+  isClusterCloudType,
+} from "@/app/home/cluster/common";
 
 export default function ClusterListPage() {
   const router = useRouter();
@@ -106,17 +103,6 @@ export default function ClusterListPage() {
   const [newClusterDetailDialogOpen, setNewClusterDetailDialogOpen] =
     React.useState(false);
   const [clusterRegions, setClusterRegions] = React.useState<string[]>([]);
-  const [clusterTypes, setClusterTypes] = React.useState<ClusterType[]>([]);
-  const [clusterStatuses, setClusterStatuses] = React.useState<ClusterStatus[]>(
-    []
-  );
-  const [clusterLevels, setClusterLevels] = React.useState<ClusterLevel[]>([]);
-  const [nodeStatuses, setNodeStatuses] = React.useState<NodeStatus[]>([]);
-  const [nodeGroupTypes, setNodeGroupTypes] = React.useState<NodeGroupType[]>(
-    []
-  );
-  const [nodeRoles, setNodeRoles] = React.useState<NodeRole[]>([]);
-  const [resourceTypes, setResourceTypes] = React.useState<ResourceType[]>([]);
 
   const exampleClusterArgs: ClusterArgs = {
     id: "0", // backend is int64, so we use "0" to represent empty
@@ -199,7 +185,7 @@ export default function ClusterListPage() {
       cluster.nodes.forEach((node) => {
         nodeargs.push({
           id: node.id,
-          ip: node.internal_ip,
+          ip: node.ip,
           user: node.user,
           role: node.role,
         });
@@ -271,154 +257,11 @@ export default function ClusterListPage() {
     });
   };
 
-  const getClusterTypes = () => {
-    ClusterServices.getClusterTypes().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get cluster types fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      setClusterTypes(res.cluster_types as ClusterType[]);
-    });
-  };
-
-  // GetClusterStatuses
-  const getClusterStatuses = () => {
-    ClusterServices.getClusterStatuses().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get cluster statuses fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      setClusterStatuses(res.cluster_statuses as ClusterStatus[]);
-    });
-  };
-
-  // GetClusterLevels
-  const getClusterLevels = () => {
-    ClusterServices.getClusterLevels().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get cluster levels fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      setClusterLevels(res.cluster_levels as ClusterLevel[]);
-    });
-  };
-
-  // GetNodeRoles
-  const getNodeRoles = () => {
-    ClusterServices.getNodeRoles().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get node roles fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      setNodeRoles(res.node_roles as NodeRole[]);
-    });
-  };
-
-  // GetNodeStatuses
-  const getNodeStatuses = () => {
-    ClusterServices.getNodeStatuses().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get node statuses fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      setNodeStatuses(res.node_statuses as NodeStatus[]);
-    });
-  };
-
-  // GetNodeGroupTypes
-  const getNodeGroupTypes = () => {
-    ClusterServices.getNodeGroupTypes().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get node group types fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      setNodeGroupTypes(res.node_group_types as NodeGroupType[]);
-    });
-  };
-
-  // GetResourceTypes
-  const getResourceTypes = () => {
-    ClusterServices.getResourceTypes().then((res) => {
-      if (res instanceof Error) {
-        toast({
-          title: "Get resource types fail",
-          variant: "destructive",
-          description: res.message,
-        });
-        return;
-      }
-      setResourceTypes(res.resource_types as ResourceType[]);
-    });
-  };
-
-  const isClusterCloudType = (type: number) => {
-    const clusterType = clusterTypes.find((clusterType) => {
-      return clusterType.id === type;
-    });
-    return clusterType?.is_cloud;
-  };
-
-  const findClusterTypeByName = (name: string) => {
-    const clusterType = clusterTypes.find((clusterType) => {
-      return clusterType.name === name;
-    });
-    return clusterType?.id;
-  };
-
-  const findClusterTypeById = (id: number) => {
-    if (id === 0) {
-      return "Unknown";
-    }
-    const clusterType = clusterTypes.find((clusterType) => {
-      return clusterType.id === id;
-    });
-    return clusterType?.name;
-  };
-
-  const findClusterStatusById = (id: number) => {
-    if (id === 0) {
-      return "Unknown";
-    }
-    const clusterStatus = clusterStatuses.find((clusterStatus) => {
-      return clusterStatus.id === id;
-    });
-    return clusterStatus?.name;
-  };
-
   React.useEffect(() => {
+    console.log("refresh cluster list");
     refreshClusterList();
-    getClusterTypes();
-    getClusterStatuses();
-    getClusterLevels();
-    getNodeRoles();
-    getNodeStatuses();
-    getNodeGroupTypes();
-    getResourceTypes();
-  }, [refreshClusterList]);
+    initializeData();
+  }, []);
 
   const columns: ColumnDef<Cluster>[] = [
     {
@@ -669,7 +512,7 @@ export default function ClusterListPage() {
                       className="col-span-3 justify-between"
                     >
                       {clusterArgs.type
-                        ? clusterTypes.find(
+                        ? getClusterAllTypes().find(
                             (clustertype) => clustertype.id === clusterArgs.type
                           )?.name
                         : "Select cluster type..."}
@@ -681,7 +524,7 @@ export default function ClusterListPage() {
                       <CommandInput placeholder="Search cluster type..." />
                       <CommandEmpty>No cluster type found.</CommandEmpty>
                       <CommandGroup>
-                        {clusterTypes.map((clusterType) => (
+                        {getClusterAllTypes().map((clusterType) => (
                           <CommandItem
                             disabled={clusterArgs.edit}
                             key={clusterType.id}

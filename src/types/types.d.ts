@@ -179,17 +179,48 @@ type Cluster = {
 };
 
 type NodeGroup = {
+      id: string;
+      name: string;
+      type: number;
+      os: string;
+      arch: string;
+      cpu: number;
+      memory: number;
+      gpu: number;
+      gpu_spec: string;
+      system_disk_size: number;
+      data_disk_size: number;
+      min_size: number;
+      max_size: number;
+      target_size: number;
+      update_at: string;
 };
 
 type Node = {
       id: string;
-      internal_ip: string;
+      name: string;
+      ip: string;
       user: string;
       role: number;
+      status: number;
+      instance_id: string;
+      update_at: string;
 };
 
 type BostionHost = {
-
+      id: string;
+      user: string;
+      os: string;
+      arch: string;
+      cpu: number;
+      memory: number;
+      hostname: string;
+      external_ip: string;
+      internal_ip: string;
+      ssh_port: number;
+      status: number;
+      instance_id: string;
+      update_at: string;
 };
 
 type ClusterLogsRequest = {
