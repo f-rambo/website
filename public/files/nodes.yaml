@@ -1,0 +1,13 @@
+---
+- id: "0"
+  user: "root"
+  ip: "1.1.1.1"
+  role: 1
+- id: "0"
+  user: "root"
+  ip: "1.1.1.2"
+  role: 1
+- id: "0"
+  user: "root"
+  ip: "1.1.1.3"
+  role: 1

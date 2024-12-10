@@ -78,6 +78,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import YamlEditor from "@focus-reactive/react-yaml";
+import * as yaml from "js-yaml";
 import {
   initializeData,
   getClusterAllTypes,
@@ -258,7 +259,6 @@ export default function ClusterListPage() {
   };
 
   React.useEffect(() => {
-    console.log("refresh cluster list");
     refreshClusterList();
     initializeData();
   }, []);
@@ -749,16 +749,67 @@ export default function ClusterListPage() {
             {!isClusterCloudType(clusterArgs.type) && (
               <div className="grid grid-cols-1 items-center gap-4">
                 <div className="h-96 w-full">
-                  <Label htmlFor="region" className="text-right">
-                    Master role : 1, Woker role : 2, Edge role : 3 \\ node
-                    example id default : 0
+                  <Label htmlFor="nodes" className="text-right">
+                    Master role : 1, Woker role : 2, Edge role : 3
                   </Label>
-                  <YamlEditor
-                    json={clusterArgs.nodes}
-                    onChange={(e) => {
-                      updateClusterArgs({ nodes: e.json as NodeArgs[] });
-                    }}
-                  />
+                  <div>
+                    <a href="/files/nodes.yaml" download>
+                      <Button>Download nodes example file</Button>
+                    </a>
+                  </div>
+                  <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Label htmlFor="nodes">nodes</Label>
+                    <Input
+                      id="nodes"
+                      type="file"
+                      accept=".yaml,.yml"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = async (e) => {
+                            try {
+                              const content = e.target?.result as string;
+                              // Try to parse the YAML content
+                              const yamlData = yaml.load(content);
+
+                              // Validate if it's an array and has the expected structure
+                              if (
+                                Array.isArray(yamlData) &&
+                                yamlData.every(
+                                  (node) =>
+                                    typeof node === "object" &&
+                                    "role" in node &&
+                                    "id" in node
+                                )
+                              ) {
+                                updateClusterArgs({ nodes: yamlData });
+                                toast({
+                                  title: "Success",
+                                  description:
+                                    "Nodes configuration loaded successfully",
+                                });
+                              } else {
+                                toast({
+                                  title: "Error",
+                                  description:
+                                    "Invalid nodes configuration format",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to parse YAML file",
+                                variant: "destructive",
+                              });
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

@@ -244,9 +244,9 @@ export default function DetailsPage({
   return (
     <div className="flex h-screen">
       <div className="flex-grow flex p-4 space-x-4">
-        <div className="space-y-4 overflow-y-auto">
+        <div className="w-full space-y-4 overflow-y-auto">
           <div className="w-full overflow-x-auto">
-            <div className="text-center text-lg font-semibold mx-auto px-4 ml-20">
+            <div className="text-center text-lg font-semibold mx-auto px-4">
               Bostion Host
             </div>
             <Table>
