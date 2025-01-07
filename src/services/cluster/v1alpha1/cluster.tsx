@@ -43,13 +43,16 @@ export const ClusterServices = {
     });
     return handlerResponse(res);
   },
-  async getClusterRegion(clusterID: string) {
-    const res = await fetch(`${clusterApi}/regions?id=${clusterID}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  async getRegions(type: number, access_id: string, access_key: string) {
+    const res = await fetch(
+      `${clusterApi}/regions?access_id=${access_id}&access_key=${access_key}&type=${type}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
     return handlerResponse(res);
   },
   async startCluster(clusterID: string) {
@@ -62,13 +65,13 @@ export const ClusterServices = {
     });
     return handlerResponse(res);
   },
-  async pollingLogs(data: ClusterLogsRequest) {
-    const res = await fetch(`${clusterApi}/logs`, {
+  async stopCluster(clusterID: string) {
+    const res = await fetch(`${clusterApi}/stop`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ id: clusterID }),
     });
     return handlerResponse(res);
   },

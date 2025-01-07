@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ClusterServices } from "@/services/cluster/v1alpha1/cluster";
-import { Cluster, Node, NodeGroup, BostionHost } from "@/types/types";
+import { Cluster, Node, NodeGroup } from "@/types/types";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import {
   ColumnDef,
@@ -34,15 +34,11 @@ import {
 } from "@/components/ui/table";
 import {
   initializeData,
-  getClusterAllTypes,
-  findClusterTypeById,
-  findClusterStatusById,
-  findClusterTypeByName,
-  isClusterCloudType,
   findNodeGroupTypeById,
   findNodeStatusById,
   findNodeRoleById,
 } from "@/app/home/cluster/common";
+import { LogBoard } from "@/components/ui/log";
 
 export default function DetailsPage({
   params,
@@ -61,10 +57,10 @@ export default function DetailsPage({
     useState<ColumnFiltersState>([]);
   const [nodeGroupColumnVisibility, setNodeGroupColumnVisibility] =
     useState<VisibilityState>({});
+  const [logAutoScroll, setLogAutoScroll] = useState(true);
 
   const [nodes, setNodes] = useState<Node[]>([]);
   const [nodeGroups, setNodeGroups] = useState<NodeGroup[]>([]);
-  const [bostionHost, setBostionHost] = useState<BostionHost>();
 
   const getClusterDetails = useCallback(() => {
     ClusterServices.getDetail(params.clusterid).then((data) => {
@@ -82,9 +78,6 @@ export default function DetailsPage({
       }
       if (cluster.nodes?.length > 0) {
         setNodes(cluster.nodes);
-      }
-      if (cluster.bostion_host) {
-        setBostionHost(cluster.bostion_host);
       }
     });
   }, [toast, params.clusterid]);
@@ -246,50 +239,6 @@ export default function DetailsPage({
       <div className="flex-grow flex p-4 space-x-4">
         <div className="w-full space-y-4 overflow-y-auto">
           <div className="w-full overflow-x-auto">
-            <div className="text-center text-lg font-semibold mx-auto px-4">
-              Bostion Host
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>OS</TableHead>
-                  <TableHead>Arch</TableHead>
-                  <TableHead>Cpu</TableHead>
-                  <TableHead>Memory</TableHead>
-                  <TableHead>Hostname</TableHead>
-                  <TableHead>External Ip</TableHead>
-                  <TableHead>Internal Ip</TableHead>
-                  <TableHead>SSH Port</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Instance Id</TableHead>
-                  <TableHead>Update At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow key={bostionHost?.id}>
-                  <TableCell>{bostionHost?.id}</TableCell>
-                  <TableCell>{bostionHost?.user}</TableCell>
-                  <TableCell>{bostionHost?.os}</TableCell>
-                  <TableCell>{bostionHost?.arch}</TableCell>
-                  <TableCell>{bostionHost?.cpu}</TableCell>
-                  <TableCell>{bostionHost?.memory}</TableCell>
-                  <TableCell>{bostionHost?.hostname}</TableCell>
-                  <TableCell>{bostionHost?.external_ip}</TableCell>
-                  <TableCell>{bostionHost?.internal_ip}</TableCell>
-                  <TableCell>{bostionHost?.ssh_port}</TableCell>
-                  <TableCell>
-                    {bostionHost?.status &&
-                      findNodeStatusById(bostionHost?.status)}
-                  </TableCell>
-                  <TableCell>{bostionHost?.instance_id}</TableCell>
-                  <TableCell>{bostionHost?.update_at}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-          <div className="w-full overflow-x-auto">
             <div className="flex items-center py-4 ">
               <Input
                 placeholder="Filter node groups..."
@@ -395,108 +344,126 @@ export default function DetailsPage({
               </div>
             </div>
           </div>
-          <div className="w-full overflow-x-auto">
-            <div className="flex items-center py-4">
-              <Input
-                placeholder="Filter nodes..."
-                value={
-                  (nodeTable.getColumn("name")?.getFilterValue() as string) ??
-                  ""
-                }
-                onChange={(event) =>
-                  nodeTable
-                    .getColumn("name")
-                    ?.setFilterValue(event.target.value)
-                }
-                className="max-w-sm"
-              />
-              <div className="text-center text-lg font-semibold mx-auto px-4">
-                Nodes
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="ml-auto mr-3">
-                    Columns <ChevronDownIcon className="ml-2  h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {nodeTable
-                    .getAllColumns()
-                    .filter((column) => column.getCanHide())
-                    .map((column) => {
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(value) =>
-                            column.toggleVisibility(!!value)
-                          }
-                        >
-                          {column.id}
-                        </DropdownMenuCheckboxItem>
-                      );
-                    })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  {nodeTable.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
+          <div className="flex">
+            <div className="w-full overflow-x-auto">
+              <div className="flex items-center py-4">
+                <Input
+                  placeholder="Filter nodes..."
+                  value={
+                    (nodeTable.getColumn("name")?.getFilterValue() as string) ??
+                    ""
+                  }
+                  onChange={(event) =>
+                    nodeTable
+                      .getColumn("name")
+                      ?.setFilterValue(event.target.value)
+                  }
+                  className="max-w-sm"
+                />
+                <div className="text-center text-lg font-semibold mx-auto px-4">
+                  Nodes
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="ml-auto mr-3">
+                      Columns <ChevronDownIcon className="ml-2  h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {nodeTable
+                      .getAllColumns()
+                      .filter((column) => column.getCanHide())
+                      .map((column) => {
                         return (
-                          <TableHead key={header.id}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                          </TableHead>
+                          <DropdownMenuCheckboxItem
+                            key={column.id}
+                            className="capitalize"
+                            checked={column.getIsVisible()}
+                            onCheckedChange={(value) =>
+                              column.toggleVisibility(!!value)
+                            }
+                          >
+                            {column.id}
+                          </DropdownMenuCheckboxItem>
                         );
                       })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {nodeTable.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    {nodeTable.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => {
+                          return (
+                            <TableHead key={header.id}>
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                            </TableHead>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {nodeTable.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && "selected"}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <div className="space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => nodeTable.previousPage()}
+                    disabled={!nodeTable.getCanPreviousPage()}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => nodeTable.nextPage()}
+                    disabled={!nodeTable.getCanNextPage()}
+                  >
+                    Next
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLogAutoScroll(!logAutoScroll)}
+                  >
+                    logAutoScroll
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => nodeTable.previousPage()}
-                  disabled={!nodeTable.getCanPreviousPage()}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => nodeTable.nextPage()}
-                  disabled={!nodeTable.getCanNextPage()}
-                >
-                  Next
-                </Button>
+            <div>
+              <div className="rounded-md border h-[1000px] w-[600px] ml-3 mb-9">
+                <LogBoard
+                  initialLogs={[]}
+                  clusterId={params.clusterid}
+                  autoScroll={logAutoScroll}
+                />
               </div>
             </div>
           </div>

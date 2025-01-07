@@ -21,10 +21,15 @@ export async function GET(request: Request) {
    newHeaders.append('User-Email', session?.user?.email as string);
    newHeaders.append('User-Id', session?.userId as string);
 
-   const forwardedResponse = await fetch(newUrl+(serachParanms ? '?' + serachParanms : ''), {
-     method: 'GET',
-     headers: newHeaders,
-   });
+   const encodedSearchParams = serachParanms.split('&').map(param => {
+    const [key, value] = param.split('=');
+    return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+   }).join('&');
+
+  const forwardedResponse = await fetch(newUrl + (encodedSearchParams ? '?' + encodedSearchParams : ''), {
+    method: 'GET',
+    headers: newHeaders,
+  });
 
    return forwardedResponse;
 }
@@ -64,7 +69,6 @@ export async function PUT(request: Request) {
    newHeaders.append('User-Email', session?.user?.email as string);
    newHeaders.append('User-Id', session?.userId as string);
 
-   // 发送转发后的请求
    const forwardedResponse = await fetch(newUrl, {
      method: 'PUT',
      headers: newHeaders,
@@ -83,13 +87,18 @@ export async function DELETE(request: Request) {
 
    const newUrl = backendUrl+url.pathname ; 
    const newHeaders = new Headers(request.headers);
-   // 将原始请求的查询参数附加到新的URL上
+
    const serachParanms = new URLSearchParams(url.searchParams).toString();
    newHeaders.append('Authorization', session.provider+' '+session.accessToken);
    newHeaders.append('User-Email', session?.user?.email as string);
    newHeaders.append('User-Id', session?.userId as string);
 
-   const forwardedResponse = await fetch(newUrl +(serachParanms ? '?' + serachParanms : ''), {
+   const encodedSearchParams = serachParanms.split('&').map(param => {
+    const [key, value] = param.split('=');
+    return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+   }).join('&');
+
+   const forwardedResponse = await fetch(newUrl +(encodedSearchParams ? '?' + encodedSearchParams : ''), {
      method: 'DELETE',
      headers: newHeaders,
    });
@@ -131,7 +140,6 @@ export async function OPTIONS(request: Request) {
    newHeaders.append('User-Email', session?.user?.email as string);
    newHeaders.append('User-Id', session?.userId as string);
 
-   // 发送转发后的请求
    const forwardedResponse = await fetch(newUrl, {
      method: 'OPTIONS',
      headers: newHeaders,
@@ -205,14 +213,13 @@ export async function PROPFIND(request: Request) {
 
    const url = new URL(request.url);
    url.pathname = url.pathname.replace(/\/.*\/backend/, '');
-   // Build new request
+
    const newUrl = backendUrl+url.pathname ; // New address
    const newHeaders = new Headers(request.headers); // copy original request headers
    newHeaders.append('Authorization', session.provider+' '+session.accessToken);
    newHeaders.append('User-Email', session?.user?.email as string);
    newHeaders.append('User-Id', session?.userId as string);
 
-   // send forwarded request
    const forwardedResponse = await fetch(newUrl, {
      method: 'PROPFIND',
      headers: newHeaders,
@@ -232,7 +239,6 @@ export async function PROPPATCH(request: Request) {
    newHeaders.append('User-Email', session?.user?.email as string);
    newHeaders.append('User-Id', session?.userId as string);
 
-   // 发送转发后的请求
    const forwardedResponse = await fetch(newUrl, {
      method: 'PROPPATCH',
      headers: newHeaders,

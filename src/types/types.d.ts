@@ -104,18 +104,13 @@ type ClusterArgs = {
       type: number;
       private_key: string;
       public_key: string;
-      region: string;
       access_id: string;
       access_key: string;
-      nodes: NodeArgs[];
+      region:string;
+      node_username: string;
+      node_start_ip: string;
+      node_end_ip: string;
       edit: boolean;
-};
-    
-type NodeArgs = {
-      id: string;
-      ip: string;
-      user: string;
-      role: number;
 };
 
 type ClusterType = {
@@ -159,23 +154,31 @@ type ResourceType = {
       name: string;
 }
 
+type Region = {
+      id: string;
+      name: string;
+}
+
 type Cluster = {
       id: string;
       name: string;
       version: string;
+      api_server_address: string;
       status: number;
       type: number;
       public_key: string;
       private_key: string;
       region: string;
+      region_name: string;
       access_id: string;
       access_key: string;
       create_at: string;
       update_at: string;
-      api_server_address: string;
       nodes: Node[];
       node_groups: NodeGroup[];
-      bostion_host: BostionHost;
+      node_username: string;
+      node_start_ip: string;
+      node_end_ip: string;
 };
 
 type NodeGroup = {
@@ -202,22 +205,6 @@ type Node = {
       ip: string;
       user: string;
       role: number;
-      status: number;
-      instance_id: string;
-      update_at: string;
-};
-
-type BostionHost = {
-      id: string;
-      user: string;
-      os: string;
-      arch: string;
-      cpu: number;
-      memory: number;
-      hostname: string;
-      external_ip: string;
-      internal_ip: string;
-      ssh_port: number;
       status: number;
       instance_id: string;
       update_at: string;
