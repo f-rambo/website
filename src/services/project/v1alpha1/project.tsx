@@ -42,33 +42,4 @@ export const ProjectServices = {
     });
     return handlerResponse(res);
   },
-  async getProjectMockData() {
-    const res = await fetch(`${projectApi}/mock`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    return handlerResponse(res);
-  },
-  async enable(id: string) {
-    const res = await fetch(`${projectApi}/enable`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id: id }),
-    });
-    return handlerResponse(res);
-  },
-  async disable(id: string) {
-    const res = await fetch(`${projectApi}/disable`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id: id }),
-    });
-    return handlerResponse(res);
-  },
 };

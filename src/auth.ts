@@ -29,6 +29,7 @@ const signInFunction = async (email: string, password: string, access_token: str
   });
   const data = await res.json() as adminUser;
   if (!data || !data.access_token){
+    console.log("Invalid login")
     return null
   }
   return data

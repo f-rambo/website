@@ -229,18 +229,8 @@ type Project = {
       description: string;
       cluster_id: string;
       state: string;
-      business: Business[];
-      business_technology: string;
 };
 
-type Business = {
-      name: string;
-      technologys: Technology[];
-};
-
-type Technology = {
-      name: string;
-};
 
 type Service = {
       id: string;
